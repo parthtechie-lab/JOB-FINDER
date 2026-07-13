@@ -1,0 +1,149 @@
+version: '3.8'
+
+services:
+  # ─── Infrastructure ──────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: career_raider_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: career_user
+      POSTGRES_PASSWORD: career_password
+      POSTGRES_DB: career_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U career_user -d career_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: career_raider_redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ─── DB Init (runs once, then exits) ─────────────────────────────────────────
+  db-init:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: career_raider_db_init
+    command: python scripts/init_db.py
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql://career_user:career_password@db:5432/career_db
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: "no"
+
+  # ─── API Server ───────────────────────────────────────────────────────────────
+  api-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: career_raider_api
+    restart: unless-stopped
+    command: uvicorn src.api.health_server:app --host 0.0.0.0 --port 9090 --workers 2
+    ports:
+      - "9090:9090"
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql://career_user:career_password@db:5432/career_db
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9090/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Celery Beat (Scheduler) ──────────────────────────────────────────────────
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: career_raider_beat
+    restart: unless-stopped
+    command: celery -A src.processors.celery_app beat --loglevel=info
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql://career_user:career_password@db:5432/career_db
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+      - db
+
+  # ─── Fast Worker (Tier 1, 2, 4 + Alerts) ────────────────────────────────────
+  celery-worker-fast:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: career_raider_fast_worker
+    restart: unless-stopped
+    command: celery -A src.processors.celery_app worker --loglevel=info --concurrency=4 -Q fast_queue -n fast@%h
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql://career_user:career_password@db:5432/career_db
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+      - db
+
+  # ─── Heavy Worker (Tier 3: Playwright + IMAP) ─────────────────────────────────
+  celery-worker-heavy:
+    build:
+      context: .
+      dockerfile: Dockerfile.heavy
+    container_name: career_raider_heavy_worker
+    restart: unless-stopped
+    command: celery -A src.processors.celery_app worker --loglevel=info --concurrency=1 -Q heavy_queue -n heavy@%h
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql://career_user:career_password@db:5432/career_db
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+      - db
+
+  # ─── Metrics Exporter ────────────────────────────────────────────────────────
+  metrics-exporter:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: career_raider_metrics
+    restart: unless-stopped
+    command: python prometheus/metrics_exporter.py
+    ports:
+      - "9091:9091"
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql://career_user:career_password@db:5432/career_db
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  postgres_data:
+  redis_data:

@@ -1,0 +1,73 @@
+[tool.poetry]
+name = "career-raider"
+version = "1.0.0"
+description = "Industrial-grade 4-tier job scraping, AI-processing, and alerting system"
+authors = ["Admin <admin@example.com>"]
+readme = "README.md"
+packages = [{include = "src"}]
+
+[tool.poetry.dependencies]
+python = ">=3.12,<3.15"
+
+# API & server
+fastapi = "^0.111.0"
+uvicorn = {extras = ["standard"], version = "^0.30.1"}
+
+# Task queue
+celery = {extras = ["redis"], version = "^5.4.0"}
+redis = "^5.0.4"
+
+# Database
+sqlalchemy = "^2.0.30"
+alembic = "^1.13.1"
+psycopg2-binary = "^2.9.9"
+
+# Settings
+pydantic = "^2.7.2"
+pydantic-settings = "^2.3.0"
+
+# AI - google-genai is the modern SDK, Python 3.14 compatible
+google-genai = "^2.11.0"
+
+# HTTP & scraping
+httpx = {extras = ["http2"], version = "^0.28.1"}
+feedparser = "^6.0.11"
+lxml = "^6.1.1"
+playwright = "^1.61.0"
+
+# Telegram
+telethon = "^1.44.0"
+requests = "^2.32.3"
+
+# Logging
+structlog = "^24.2.0"
+
+# YAML
+pyyaml = "^6.0.1"
+
+# Monitoring
+prometheus-client = "^0.20.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.2.2"
+pytest-asyncio = "^0.23.7"
+pytest-mock = "^3.14.0"
+httpx = "^0.28.1"
+black = "^24.4.2"
+ruff = "^0.4.9"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -1,0 +1,11 @@
+# Tier 1 Sources (Golden APIs)
+greenhouse:
+  - "stripe"
+  - "discord"
+  - "figma"
+  - "vercel"
+lever:
+  - "netflix"
+  - "anthropic"
+ashby:
+  - "openai"
