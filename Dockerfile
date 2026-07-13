@@ -19,11 +19,11 @@ ENV PATH="$POETRY_HOME/bin:$PATH"
 
 WORKDIR /app
 
-# Copy poetry files
-COPY pyproject.toml poetry.lock* ./
+# Copy requirements file
+COPY requirements.txt ./
 
 # Install dependencies
-RUN poetry install --no-interaction --no-ansi --no-root
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy project files
 COPY . .

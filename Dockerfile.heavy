@@ -19,8 +19,8 @@ RUN curl -sSL https://install.python-poetry.org | python3 -
 ENV PATH="$POETRY_HOME/bin:$PATH"
 
 WORKDIR /app
-COPY pyproject.toml poetry.lock* ./
-RUN poetry install --no-interaction --no-ansi --no-root
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 RUN playwright install chromium --with-deps
 
 COPY . .
