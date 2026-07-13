@@ -4,6 +4,7 @@ FROM python:3.12-slim
 ENV PYTHONUNBUFFERED=1
 ENV POETRY_HOME="/opt/poetry"
 ENV POETRY_VIRTUALENVS_CREATE=false
+ENV POETRY_HTTP_TIMEOUT=300
 
 RUN apt-get update && apt-get install -y \
     curl build-essential libpq-dev \
@@ -19,8 +20,7 @@ ENV PATH="$POETRY_HOME/bin:$PATH"
 
 WORKDIR /app
 COPY pyproject.toml poetry.lock* ./
-RUN poetry config requests.timeout 300 && \
-    poetry install --no-interaction --no-ansi --no-root
+RUN poetry install --no-interaction --no-ansi --no-root
 RUN playwright install chromium --with-deps
 
 COPY . .

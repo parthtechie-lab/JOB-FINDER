@@ -4,6 +4,7 @@ ENV PYTHONUNBUFFERED=1
 ENV POETRY_VERSION=1.8.3
 ENV POETRY_HOME="/opt/poetry"
 ENV POETRY_VIRTUALENVS_CREATE=false
+ENV POETRY_HTTP_TIMEOUT=300
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -21,9 +22,8 @@ WORKDIR /app
 # Copy poetry files
 COPY pyproject.toml poetry.lock* ./
 
-# Configure poetry timeouts and install dependencies
-RUN poetry config requests.timeout 300 && \
-    poetry install --no-interaction --no-ansi --no-root
+# Install dependencies
+RUN poetry install --no-interaction --no-ansi --no-root
 
 # Copy project files
 COPY . .
