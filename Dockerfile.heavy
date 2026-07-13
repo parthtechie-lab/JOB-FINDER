@@ -19,7 +19,8 @@ ENV PATH="$POETRY_HOME/bin:$PATH"
 
 WORKDIR /app
 COPY pyproject.toml poetry.lock* ./
-RUN poetry install --no-interaction --no-ansi --no-root
+RUN poetry config requests.timeout 300 && \
+    poetry install --no-interaction --no-ansi --no-root
 RUN playwright install chromium --with-deps
 
 COPY . .

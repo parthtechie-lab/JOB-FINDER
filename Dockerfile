@@ -21,8 +21,9 @@ WORKDIR /app
 # Copy poetry files
 COPY pyproject.toml poetry.lock* ./
 
-# Install dependencies
-RUN poetry install --no-interaction --no-ansi --no-root
+# Configure poetry timeouts and install dependencies
+RUN poetry config requests.timeout 300 && \
+    poetry install --no-interaction --no-ansi --no-root
 
 # Copy project files
 COPY . .
